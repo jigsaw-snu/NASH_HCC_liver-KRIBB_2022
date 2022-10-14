@@ -1,0 +1,13 @@
+{
+	"n_targets": 118489,
+	"n_bootstraps": 100,
+	"n_processed": 65733389,
+	"n_pseudoaligned": 42474055,
+	"n_unique": 17845107,
+	"p_pseudoaligned": 64.6,
+	"p_unique": 27.1,
+	"kallisto_version": "0.46.1",
+	"index_version": 10,
+	"start_time": "Fri Oct 14 03:33:46 2022",
+	"call": "/home/lsg239/tools/kallisto/kallisto quant -i /home/lsg239/tools/kallisto/index/GRCm38/mus_musculus/transcriptome.idx -o /data2/lsg239/HN00179750/quant/kallisto/HCC_1x_T_12 -t 2 -b 100 /data2/lsg239/HN00179750/raw/HCC_1x_T_12_1.fastq.gz /data2/lsg239/HN00179750/raw/HCC_1x_T_12_2.fastq.gz"
+}
