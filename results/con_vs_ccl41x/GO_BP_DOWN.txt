@@ -1,0 +1,8 @@
+Category	Term	Count	%	PValue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+GOTERM_BP_DIRECT	GO:0007155~cell adhesion	24	11.32075472	8.66E-09	"COL28A1, CX3CR1, CD93, PCDHGC3, DPT, MSLN, NID1, LYVE1, THBS4, PCDH17, FERMT1, CDH3, FLRT2, COL6A1, CDH11, CDHR2, CCN5, COL8A2, COL8A1, ACKR3, CD9, CYP1B1, EMB, PCDHB9"	187	601	20136	4.29999911	1.11E-05	1.11E-05	1.10E-05
+												
+												
+												
+												
+												
+												

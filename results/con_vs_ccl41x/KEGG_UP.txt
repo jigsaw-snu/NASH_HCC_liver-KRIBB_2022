@@ -1,0 +1,2 @@
+Category	Term	Count	%	PValue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+KEGG_PATHWAY	mmu00140:Steroid hormone biosynthesis	6	4.081632653	7.66E-04	"CYP2C37, HSD3B5, CYP2C54, CYP2D40, HSD17B2, CYP2C38"	72	92	8998	8.150362319	0.096933016	0.101919478	0.099620542
