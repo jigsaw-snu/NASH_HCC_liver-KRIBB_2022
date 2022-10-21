@@ -1,29 +1,29 @@
-Samples Treatment	Diet	Tumor	Group
-CCI4_1x_4	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor
-CCI4_1x_6	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor
-CCI4_1x_9	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor
-CCI4_3x_2	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor
-CCI4_3x_5	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor
-CCI4_3x_6	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor
-HCC_1x_AT_2	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor
-HCC_1x_AT_8	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor
-HCC_1x_AT_11	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor
-HCC_1x_AT_12	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor
-HCC_1x_T_2	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor
-HCC_1x_T_8	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor
-HCC_1x_T_11	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor
-HCC_1x_T_12	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor
-HCC_3x_AT_5	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor
-HCC_3x_AT_7	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor
-HCC_3x_AT_9	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor
-HCC_3x_AT_14	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor
-HCC_3x_T_5	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor
-HCC_3x_T_7	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor
-HCC_3x_T_9	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor
-HCC_3x_T_14	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor
-NASH_3	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor
-NASH_10	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor
-NASH_11	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor
-NCD_3	oil	ncd	non_tumor	Oil_NCD_Non_Tumor
-NCD_4	oil	ncd	non_tumor	Oil_NCD_Non_Tumor
-NCD_5	oil	ncd	non_tumor	Oil_NCD_Non_Tumor
+Samples Treatment	Diet	Tumor	Group1	Group2
+CCI4_1x_4	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor	CCL4
+CCI4_1x_6	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor	CCL4
+CCI4_1x_9	ccl4_1x	ncd	non_tumor	CCL4_1x_NCD_Non_Tumor	CCL4
+CCI4_3x_2	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor	CCL4
+CCI4_3x_5	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor	CCL4
+CCI4_3x_6	ccl4_3x	ncd	non_tumor	CCL4_3x_NCD_Non_Tumor	CCL4
+HCC_1x_AT_2	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor	HCC
+HCC_1x_AT_8	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor	HCC
+HCC_1x_AT_11	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor	HCC
+HCC_1x_AT_12	ccl4_1x	nashd	adj_tumor	CCL4_1x_NASHD_Adj_Tumor	HCC
+HCC_1x_T_2	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor	HCC
+HCC_1x_T_8	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor	HCC
+HCC_1x_T_11	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor	HCC
+HCC_1x_T_12	ccl4_1x	nashd	tumor	CCL4_1x_NASHD_Tumor	HCC
+HCC_3x_AT_5	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor	HCC
+HCC_3x_AT_7	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor	HCC
+HCC_3x_AT_9	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor	HCC
+HCC_3x_AT_14	ccl4_3x	nashd	adj_tumor	CCL4_3x_NASHD_Adj_Tumor	HCC
+HCC_3x_T_5	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor	HCC
+HCC_3x_T_7	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor	HCC
+HCC_3x_T_9	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor	HCC
+HCC_3x_T_14	ccl4_3x	nashd	tumor	CCL4_3x_NASHD_Tumor	HCC
+NASH_3	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor	NASH_DIET
+NASH_10	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor	NASH_DIET
+NASH_11	oil	nashd	non_tumor	Oil_NASHD_Non_Tumor	NASH_DIET
+NCD_3	oil	ncd	non_tumor	Oil_NCD_Non_Tumor	CONTROL
+NCD_4	oil	ncd	non_tumor	Oil_NCD_Non_Tumor	CONTROL
+NCD_5	oil	ncd	non_tumor	Oil_NCD_Non_Tumor	CONTROL
