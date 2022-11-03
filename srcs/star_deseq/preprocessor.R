@@ -1,4 +1,4 @@
-# handler.R
+# preprocessor.R
 
 library(tidyverse)
 library(stringr)
@@ -43,7 +43,7 @@ BuildCountData <- function() {
     
     count_data <- count_data %>% tibble::column_to_rownames(var = "ENSG")
     
-    count_data[] <- sapply(count_data, as.numeric)
+    count_data[] <- sapply(count_data, as.integer)
     
     count_data <- count_data[apply(count_data, 
                                    MARGIN = 1, 

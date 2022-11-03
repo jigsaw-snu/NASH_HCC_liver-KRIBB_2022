@@ -8,7 +8,7 @@ library(pheatmap)
 library(ggrepel)
 
 
-heat_colors <- RColorBrewer::brewer.pal(11, 'RdBu')
+heat_colors <- rev(RColorBrewer::brewer.pal(11, 'RdBu'))
 
 
 RunDeseq <- function(count_data, meta_data, design) {
@@ -52,7 +52,48 @@ RunDeseq <- function(count_data, meta_data, design) {
 }
 
 
-GetPCA <- function() {}
+GetPCA <- function(rld_mat, meta_data, intgroup, label = FALSE, size = 3) {
+    # GetPCA : get PCA result
+    # 
+    # [params]
+    # @rld_mat : "assayed" result of "rlog" trnasformation of DESeq object
+    # @meta_data : choose which meta_data to use
+    # @intgroup : colname of meta_data interested in
+    #
+    # [return]
+    # ggplot object
+    
+    # sanity check
+    if (!(intgroup %in% colnames(meta_data))) {
+        print("intgroup should be one of colname in meta_data!")
+        stop()
+    }
+    
+    pca <- stats::prcomp(t(rld_mat), scale = FALSE)
+    percent_var <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+    sd_ratio <- sqrt(percent_var[2] / percent_var[1])
+    pca_df <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2], meta_data)
+    
+    gg <- ggplot2::ggplot(pca_df, aes(PC1, PC2)) +
+        ggplot2::geom_point(aes(color = eval(as.name(intgroup)))) +
+        xlab(paste0("PC1 : ", percent_var[1], "%")) +
+        ylab(paste0("PC2 : ", percent_var[2], "%")) +
+        coord_fixed(ratio = sd_ratio) +
+        theme_minimal()
+    
+    if (label) {
+        gg <- gg + ggrepel::geom_text_repel(
+            label = rownames(pca_df), size = size
+        )
+    }
+
+    return(gg)
+}
 
 
-GetHeatmap <- function() {}
+GetCorHeatmap <- function(rld_cor) {
+    # GetCorHeatmap : get sample correlation heatmap
+    #
+    # [params]
+    # @rld_cor : 
+}
