@@ -53,7 +53,7 @@ ens2sym <- function(dataset) {
 }
 
 
-ens2entrez <- function() {
+ens2entrez <- function(dataset) {
     mart <- biomaRt::useMart("ENSEMBL_MART_ENSEMBL",
                              dataset = "mmusculus_gene_ensembl")
     

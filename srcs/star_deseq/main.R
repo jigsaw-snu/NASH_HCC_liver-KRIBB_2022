@@ -2,79 +2,84 @@
 
 source("preprocessor.R")
 source("deseq.R")
+source("functools.R")
+
+
 
 count_data <- BuildCountData()
 meta_data <- BuildMetaData()
 
 
-
-
 # Quality Control of Total Sample
-dds <- DESeq2::DESeqDataSetFromMatrix(count_data, meta_data, ~Tumor)
-ddsX <- DESeq2::DESeq(dds)
-
-rld_T <- DESeq2::rlog(ddsX, blind=TRUE)
-rld_mat <- SummarizedExperiment::assay(rld_T)
-
-#plotPCA(rld_T, intgroup = "Group3") + 
-#    ggrepel::geom_text_repel(label = rownames(rld_T@colData), size = 3)
-
-pca <- stats::prcomp(t(rld_mat), scale = FALSE)
-percent_var <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
-sd_ratio <- sqrt(percent_var[2] / percent_var[1])
-
-pca_df <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2], meta_data)
-
-ggplot2::ggplot(pca_df, aes(PC1, PC2)) + 
-    geom_point(aes(color = eval(as.name("Group3"))), size=3) + 
-    xlab(paste0("PC1 : ", percent_var[1], "%")) + 
-    ylab(paste0("PC2 : ", percent_var[2], "%")) + 
-    coord_fixed(ratio = sd_ratio) +
-    theme_minimal() + 
-    ggrepel::geom_text_repel(label = rownames(pca_df), size=2.5)
-
-ggplot2::ggplot(pca_df, aes(PC1, PC2)) + 
-    geom_point(aes(color = Tumor), size=3) + 
-    xlab(paste0("PC1 : ", percent_var[1], "%")) + 
-    ylab(paste0("PC2 : ", percent_var[2], "%")) + 
-    coord_fixed(ratio = sd_ratio)
-
-rld_cor <- stats::cor(rld_mat)
-
-meta_selected <- meta_data[, 5, drop = FALSE]
-pheatmap::pheatmap(rld_cor, annotation = meta_selected, color = heat_colors)
+deseq_total_samples <- RunDeseq(count_data, meta_data, ~Tumor)
 
 
+pca_with_total_samples <- GetPCA(
+    rld_mat = deseq_total_samples$rld_mat,
+    meta_data = meta_data,
+    intgroup = "Group3",
+    shape = FALSE,
+    pt_size = 3,
+    label = FALSE,
+    txt_size = 3,
+    show_legend = TRUE
+)
+
+pca_with_total_samples_Tumor <- GetPCA(
+    rld_mat = deseq_total_samples$rld_mat,
+    meta_data = meta_data,
+    intgroup = "Tumor",
+    shape = TRUE,
+    pt_size = 3,
+    label = FALSE,
+    txt_size = 3,
+    show_legend = TRUE
+)
+
+
+cor_heatmap_with_total_samples <- GetCorHeatmap(
+    cor_mat = deseq_total_samples$rld_cor_pearson,
+    meta_data = meta_data[, 6, drop = FALSE],
+    annotation = FALSE
+)
 
 # Tumor and Adjacent Tumor samples are mixed up let's dig into it
 hcc_cdata <- count_data[, c(7:22)]
 hcc_mdata <- meta_data[c(7:22), ]
 
-dds <- DESeq2::DESeqDataSetFromMatrix(hcc_cdata, hcc_mdata, ~Tumor)
-ddsX <- DESeq2::DESeq(dds)
+deseq_tumor_samples <- RunDeseq(hcc_cdata, hcc_mdata, ~Tumor)
 
-rld_T <- DESeq2::rlog(ddsX, blind=TRUE)
-rld_mat <- SummarizedExperiment::assay(rld_T)
+pca_with_tumor_samples <- GetPCA(
+    rld_mat = deseq_tumor_samples$rld_mat,
+    meta_data = hcc_mdata,
+    intgroup = "Group3",
+)
 
-pca <- stats::prcomp(t(rld_mat), scale = FALSE)
-percent_var <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
-sd_ratio <- sqrt(percent_var[2] / percent_var[1])
-
-pca_df <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2], hcc_mdata)
-
-ggplot2::ggplot(pca_df, aes(PC1, PC2)) + 
-    geom_point(aes(color = Group3), size=3) + 
-    xlab(paste0("PC1 : ", percent_var[1], "%")) + 
-    ylab(paste0("PC2 : ", percent_var[2], "%")) + 
-    coord_fixed(ratio = sd_ratio)
-
-rld_cor <- stats::cor(rld_mat)
-
-meta_selected <- meta_data[, 5, drop = FALSE]
-pheatmap::pheatmap(rld_cor, annotation = hcc_mdata, color = heat_colors)
+cor_heatmap_with_tumor_samples <- GetCorHeatmap(
+    cor_mat = deseq_tumor_samples$rld_cor_spearman,
+    meta_data = hcc_mdata[, 6, drop = FALSE]
+)
 
 
+# HCC 1x families with AT
+deseq_hcc1x_AT_families <- RunDeseq(
+    count_data = count_data[, -c(4:6, 15:22)],
+    meta_data = meta_data[-c(4:6, 15:22), ],
+    ~Tumor
+)
 
+pca_with_hcc1x_AT_families <- GetPCA(
+    rld_mat = deseq_hcc1x_AT_families$rld_mat,
+    meta_data = meta_data[-c(4:6, 15:22), ],
+    intgroup = "Group3",
+    pt_size = 3,
+    show_legend = TRUE
+)
+
+cor_heatmap_with_hcc1x_AT_families <- GetCorHeatmap(
+    cor_mat = deseq_hcc1x_AT_families$rld_cor_pearson,
+    annotation = FALSE
+)
 
 
 # 1x and 3x seems separated and Tumor and Adjacent Tumor seems blended
@@ -82,148 +87,74 @@ pheatmap::pheatmap(rld_cor, annotation = hcc_mdata, color = heat_colors)
 cdata_1x <- count_data[, -c(4:10, 15:22)]
 mdata_1x <- meta_data[-c(4:10, 15:22), ]
 
-dds <- DESeq2::DESeqDataSetFromMatrix(cdata_1x, mdata_1x, ~Tumor)
-ddsX <- DESeq2::DESeq(dds)
+deseq_hcc1x_families <- RunDeseq(cdata_1x, mdata_1x, ~Tumor)
 
-rld_T <- DESeq2::rlog(ddsX, blind=TRUE)
-rld_mat <- SummarizedExperiment::assay(rld_T)
+pca_with_hcc1x_families <- GetPCA(
+    rld_mat = deseq_hcc1x_families$rld_mat,
+    meta_data = mdata_1x,
+    intgroup = "Group3",
+    pt_size = 5,
+    show_legend = FALSE
+)
 
-pca <- stats::prcomp(t(rld_mat), scale = FALSE)
-percent_var <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
-sd_ratio <- sqrt(percent_var[2] / percent_var[1])
+cor_heatmap_with_hcc1x_families_pearson <- GetCorHeatmap(
+    cor_mat = deseq_hcc1x_families$rld_cor_pearson,
+    meta_data = mdata_1x[, 6, drop = FALSE]
+)
 
-pca_df <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2], mdata_1x)
+cor_heatmap_with_hcc1x_families_spearman <- GetCorHeatmap(
+    cor_mat = deseq_hcc1x_families$rld_cor_spearman,
+    meta_data = mdata_1x[, 6, drop = FALSE]
+)
 
-ggplot2::ggplot(pca_df, aes(PC1, PC2)) + 
-    geom_point(aes(color = Group3), size=3) + 
-    xlab(paste0("PC1 : ", percent_var[1], "%")) + 
-    ylab(paste0("PC2 : ", percent_var[2], "%")) + 
-    coord_fixed(ratio = sd_ratio) +
-    theme_minimal()
-
-rld_cor <- stats::cor(rld_mat)
-
-meta_selected <- meta_data[, 5, drop = FALSE]
-pheatmap::pheatmap(rld_cor, annotation = meta_selected, color = heat_colors)
 
 # Control vs HCC 1x
-dds <- DESeq2::DESeqDataSetFromMatrix(
-    cdata_1x[, c(5, 6, 7, 11, 12, 13)],
-    mdata_1x[c(5, 6, 7, 11, 12, 13), ],
+deseq_con_vs_hcc1x <- RunDeseq(
+    count_data = cdata_1x[, c(5, 6, 7, 11, 12, 13)],
+    meta_data = mdata_1x[c(5, 6, 7, 11, 12, 13), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_hcc1x_DEG.xlsx")
-con_vs_hcc1x <- sig_lfc_with_id
-
-norm_cnt <- counts(ddsX, normalized = TRUE) %>%
-    as.data.frame() %>%
-    rownames_to_column(var = "ENSG")
-
-sig_norm_cnt <- norm_cnt %>%
-    dplyr::filter(ENSG %in% sig_lfc$ENSG)
-
-ego <- clusterProfiler::enrichGO(
-    gene = sig_lfc %>% 
-        dplyr::filter(log2FoldChange > 2) %>%
-        dplyr::pull(ENSG),
-    OrgDb = "org.Mm.eg.db",
-    keyType = "ENSEMBL",
-    ont = "BP",
-    qvalueCutoff = 0.05,
-    minGSSize = 20,
-    maxGSSize = 1000
-)
-View(ego@result %>% dplyr::filter(p.adjust < 0.01 & qvalue < 0.01))
-
-gsea_list <- sig_lfc %>% 
-    dplyr::filter(log2FoldChange > 0.58) %>%
-    dplyr::pull(log2FoldChange)
-
-eg <- clusterProfiler::bitr(
-    sig_lfc %>% 
-        dplyr::filter(log2FoldChange > 0.58) %>%
-        dplyr::pull(ENSG),
-    fromType = "ENSEMBL",
-    toType = "ENTREZID",
-    OrgDb = "org.Mm.eg.db"
+pca_with_con_vs_hcc1x <- GetPCA(
+    rld_mat = deseq_con_vs_hcc1x$rld_mat,
+    meta_data = mdata_1x[c(5, 6, 7, 11, 12, 13), ],
+    intgroup = "Tumor"
 )
 
-names(gsea_list) <- sig_lfc %>% 
-    dplyr::filter(log2FoldChange > 0.58) %>%
-    dplyr::pull(ENSG)
-gsea_list <- sort(gsea_list, decreasing = TRUE)
-
-gse <- clusterProfiler::gseGO(
-    geneList = gsea_list,
-    ont = "BP",
-    OrgDb = "org.Mm.eg.db",
-    keyType = "ENSEMBL",
-    minGSSize = 10,
-    maxGSSize = 1000,
-    scoreType = "pos",
-    pvalueCutoff = 0.05
+cor_heatmap_with_con_vs_hcc1x <- GetCorHeatmap(
+    cor_mat = deseq_con_vs_hcc1x$rld_cor,
+    meta_data = mdata_1x[c(5, 6, 7, 11, 12, 13), 3, drop = FALSE]
 )
+
+ora_con_vs_hcc1x <- ora(deseq_con_vs_hcc1x, 2)
+gsea_con_vs_hcc1x <- gsea(deseq_con_vs_hcc1x, 0.58)
+
 
 
 # Control vs Nash
-dds <- DESeq2::DESeqDataSetFromMatrix(
-    cdata_1x[, c(8:13)],
-    mdata_1x[c(8:13), ],
+deseq_con_vs_nash <- RunDeseq(
+    count_data = cdata_1x[, c(8:13)],
+    meta_data = mdata_1x[c(8:13), ],
     ~Diet
 )
-ddsX <- DESeq2::DESeq(dds)  # no need to check sample cor (only 3 samples each)
 
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
+ora_con_vs_nash <- ora(deseq_con_vs_nash, 2)
+gsea_con_vs_nash <- gsea(deseq_con_vs_nash, 0.58)
 
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_nash_DEG.xlsx")
-con_vs_nash <- sig_lfc_with_id
 
 # Control vs CCL4 1x
-dds <- DESeq2::DESeqDataSetFromMatrix(
-    cdata_1x[, c(1:3, 11:13)],
-    mdata_1x[c(1:3, 11:13), ],
+deseq_con_vs_ccl41x <- RunDeseq(
+    count_data = cdata_1x[, c(1:3, 11:13)],
+    meta_data = mdata_1x[c(1:3, 11:13), ],
     ~Treatment
 )
-ddsX <- DESeq2::DESeq(dds)  # no need to check sample cor (only 3 samples each)
 
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
+ora_con_vs_ccl41x <- ora(deseq_con_vs_ccl41x, 2)
+gsea_con_vs_ccl41x <- gsea(deseq_con_vs_ccl41x, 0.58)
 
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_ccl41x_DEG.xlsx")
-con_vs_ccl41x <- sig_lfc_with_id
+
+
+
 
 # Nash vs HCC 1x
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -231,28 +162,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     mdata_1x[c(5:10), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/nash_vs_hcc1x_DEG.xlsx")
-nash_vs_hcc1x <- sig_lfc_with_id
 
 # CCL4 1x vs HCC 1x
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -260,28 +170,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     mdata_1x[c(1:3, 5:7), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/ccl41x_vs_hcc1x_DEG.xlsx")
-ccl41x_vs_hcc1x <- sig_lfc_with_id
 
 # HCC 1x Tumor vs adj Tumor  -->  literally no significant genes exist
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -289,53 +178,50 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     meta_data[c(7:14), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
 
 # Control vs HCC 1x AT
-dds <- DESeq2::DESeqDataSetFromMatrix(
-    count_data[, c(7:10, 26:28)],
-    meta_data[c(7:10, 26:28), ],
+deseq_con_vs_hcc1x_AT <- RunDeseq(
+    count_data = count_data[, c(7:10, 26:28)],
+    meta_data = meta_data[c(7:10, 26:28), ],
     ~Group2
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
+ora_con_vs_hcc1x_AT <- ora(deseq_con_vs_hcc1x_AT, 2)
 
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
 
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_at1x_DEG.xlsx")
-con_vs_at1x <- sig_lfc_with_id
+# let us define liver damage genes
+liver_damaged_genes_1x <- intersect(
+    intersect(
+        intersect(deseq_con_vs_nash$sig_lfc_with_sym$gene_symbol,
+                  deseq_con_vs_ccl41x$sig_lfc_with_sym$gene_symbol),
+        deseq_con_vs_hcc1x$sig_lfc_with_sym$gene_symbol
+    ),
+    deseq_con_vs_hcc1x_AT$sig_lfc_with_sym$gene_symbol
+)
+
+nash_effect_genes_1x <- setdiff(
+    deseq_con_vs_nash$sig_lfc_with_sym$gene_symbol,
+    liver_damaged_genes_1x
+)
+nash_effect_1x_df <- deseq_con_vs_nash$sig_lfc_with_sym %>%
+    dplyr::filter(gene_symbol %in% nash_effect_genes_1x)
+
+ccl4_effect_genes_1x <- setdiff(
+    deseq_con_vs_ccl41x$sig_lfc_with_sym$gene_symbol,
+    liver_damaged_genes_1x
+)
+ccl4_effect_1x_df <- deseq_con_vs_ccl41x$sig_lfc_with_sym %>%
+    dplyr::filter(gene_symbol %in% ccl4_effect_genes_1x)
+
+tumor_effect_genes_1x <- setdiff(
+    deseq_con_vs_hcc1x$sig_lfc_with_sym$gene_symbol,
+    liver_damaged_genes_1x
+)
+tumor_effect_1x_df <- deseq_con_vs_hcc1x$sig_lfc_with_sym %>%
+    dplyr::filter(gene_symbol %in% tumor_effect_genes_1x)
+ora_tumor_effect_1x <- ora()
+
 
 # make comparing set
 set1 <- setdiff(con_vs_hcc1x$gene_symbol, con_vs_at1x$gene_symbol)  # 651
@@ -393,6 +279,30 @@ writexl::write_xlsx(set2_df, "temporary/set2_1x.xlsx")
 writexl::write_xlsx(set3_df, "temporary/set3_1x.xlsx")
 
 
+
+
+# HCC 3x families with AT
+deseq_hcc3x_AT_families <- RunDeseq(
+    count_data = count_data[, -c(1:3, 7:14, 17)],
+    meta_data = meta_data[-c(1:3, 7:14, 17), ],
+    ~Tumor
+)
+
+pca_with_hcc3x_AT_families <- GetPCA(
+    rld_mat = deseq_hcc3x_AT_families$rld_mat,
+    meta_data = meta_data[-c(1:3, 7:14, 17), ],
+    intgroup = "Group3",
+    pt_size = 3,
+    show_legend = TRUE
+)
+
+cor_heatmap_with_hcc3x_AT_families <- GetCorHeatmap(
+    cor_mat = deseq_hcc3x_AT_families$rld_cor_pearson,
+    annotation = FALSE
+)
+
+
+
 # try with HCC Tumor 3x group
 cdata_3x <- count_data[, -c(1:3, 7:18)]
 mdata_3x <- meta_data[-c(1:3, 7:18), ]
@@ -422,35 +332,35 @@ meta_selected <- meta_data[, 5, drop = FALSE]
 pheatmap::pheatmap(rld_cor, annotation = meta_selected, color = heat_colors)
 
 # Control vs HCC 3x
-dds <- DESeq2::DESeqDataSetFromMatrix(
-    cdata_3x[, c(4:7, 11:13)],
-    mdata_3x[c(4:7, 11:13), ],
+deseq_con_vs_hcc3x <- RunDeseq(
+    count_data = cdata_3x[, c(4, 5, 7, 11:13)],
+    meta_data = mdata_3x[c(4, 5, 7, 11:13), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
+ora_con_vs_hcc3x <- ora(deseq_con_vs_hcc3x, 2)
 
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_hcc3x_DEG.xlsx")
-con_vs_hcc3x <- sig_lfc_with_id
 
 # Control vs CCL4 3x
+deseq_con_vs_ccl43x <- RunDeseq(
+    count_data = cdata_3x[, c(1:3, 11:13)],
+    meta_data = mdata_3x[c(1:3, 11:13), ],
+    ~Treatment
+)
+
+ora_con_vs_ccl43x <- ora(deseq_con_vs_ccl43x, 2)
+
+
+# Control vs HCC 3x AT
+deseq_con_vs_hcc3x_AT <- RunDeseq(
+    count_data = count_data[, c(15, 16, 18, 26:28)],
+    meta_data = meta_data[c(15, 16, 18, 26:28), ],
+    ~Group2
+)
+
+ora_con_vs_hcc3x_AT <- ora(deseq_con_vs_hcc3x_AT, 2)
+
+
 
 # Nash vs HCC3x
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -458,28 +368,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     mdata_3x[c(4:10), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/ccl41x_vs_hcc1x_DEG.xlsx")
-ccl41x_vs_hcc1x <- sig_lfc_with_id
 
 # CCL4 3x vs HCC3x
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -487,28 +376,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     mdata_3x[c(1:7), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/ccl41x_vs_hcc1x_DEG.xlsx")
-ccl41x_vs_hcc1x <- sig_lfc_with_id
 
 # HCC 3x vs adj Tumor  -->  literally no significant genes exist
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -516,24 +384,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     meta_data[c(15:22), ],
     ~Tumor
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
 
 # Control vs HCC 3x AT
 dds <- DESeq2::DESeqDataSetFromMatrix(
@@ -541,28 +392,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
     meta_data[c(15:18, 26:28), ],
     ~Group2
 )
-ddsX <- DESeq2::DESeq(dds)
 
-test_rld <- DESeq2::rlog(ddsX, blind=T)
-test_mat <- SummarizedExperiment::assay(test_rld)
-test_cor <- stats::cor(test_mat)
-pheatmap::pheatmap(test_cor, 
-                   color = heat_colors,
-                   scale = "row",
-                   cluster_rows = TRUE,
-                   cluster_cols = TRUE)
-
-lfc_res <- DESeq2::lfcShrink(ddsX,
-                             coef = DESeq2::resultsNames(ddsX)[2],
-                             type = "apeglm")
-sig_lfc <- lfc_res %>%
-    as.data.frame() %>%
-    dplyr::filter(padj < 0.05 & abs(log2FoldChange) > 0.58) %>%
-    rownames_to_column(var = "ENSG")  # nothing
-
-sig_lfc_with_id <- ens2sym(sig_lfc)
-writexl::write_xlsx(sig_lfc_with_id, "temporary/con_vs_at3x_DEG.xlsx")
-con_vs_at3x <- sig_lfc_with_id
 
 # make comparing set
 set1 <- setdiff(con_vs_hcc3x$gene_symbol, con_vs_at3x$gene_symbol)  # 651
