@@ -44,16 +44,85 @@ library(GSVA)
 library(limma)
 
 
-cnt_data <- readxl:::read_xlsx("test.xlsx")
-cnt_data <- cnt_data %>% tibble::column_to_rownames("...1")
+PathDiff <- function(file_path) {
+    cnt_data <- readxl:::read_xlsx(file_path)
+    cnt_data <- cnt_data %>% tibble::column_to_rownames("...1")
+    
+    groups <- sapply(colnames(cnt_data),
+                     function(x) stringr::str_split(x, '_')[[1]][1])
+    
+    test_model <- stats::model.matrix(~0 + factor(groups))
+    colnames(test_model) <- groups[!duplicated(groups)]
+    
+    test_cont <- limma::makeContrasts(
+        NCDvsALL = NCD - (CCI4 + HCC + NASH) / 3,
+        CCI4vsALL = CCI4 - (NCD + NASH + HCC) / 3,
+        NASHvsALL = NASH - (NCD + CCI4 + HCC) / 3,
+        HCCvsALL = HCC - (NCD + CCI4 + NASH) / 3,
+        levels = test_model
+    )
+    
+    test_fit <- limma::lmFit(cnt_data, test_model)
+    test_fit.c <- limma::contrasts.fit(test_fit, contrasts = test_cont)
+    test_fit.e <- limma::eBayes(test_fit.c)
+    
+    test_res <- limma::decideTests(test_fit.e, p.value = 0.05)
+    
+    test_table1 <- limma::topTable(test_fit.e, coef = 1, n = Inf)  # NCD vs ALL
+    test_table2 <- limma::topTable(test_fit.e, coef = 2, n = Inf)  # CCL4 vs ALL
+    test_table3 <- limma::topTable(test_fit.e, coef = 3, n = Inf)  # NASH vs ALL
+    test_table4 <- limma::topTable(test_fit.e, coef = 4, n = Inf)  # HCC vs ALL
+    
+    res <- list(test_fit, test_fit.c, test_fit.e, test_res,
+                test_table1, test_table2, test_table3, test_table4)
+    
+    names(res) <- c("fit", "fit.c", "fit.e", "res",
+                    "tbl1", "tbl2", "tbl3", "tbl4")
+    
+    return(res)
+}
 
-groups <- sapply(colnames(cnt_data),
-                 function(x) stringr::str_split(x, '_')[[1]][1])
-
-test_fit <- limma::lmFit(cnt_data, stats::model.matrix(~factor(groups)))
-test_fit.e <- limma::eBayes(test_fit)
-
-test_res <- limma::decideTests(test_fit.e, p.value = 0.01)
-test_table <- limma::topTable(test_fit.e, coef = 2, n = Inf)
+test1 <- PathDiff("./test.xlsx")
+test2 <- PathDiff("./test2.xlsx")
+test3 <- PathDiff("./test3.xlsx")
 
 
+PathDiff2 <- function(file_path) {
+    cnt_data <- readxl:::read_xlsx(file_path)
+    cnt_data <- cnt_data %>% tibble::column_to_rownames("...1")
+    
+    groups <- sapply(colnames(cnt_data),
+                     function(x) stringr::str_split(x, '_')[[1]][1])
+    
+    test_model <- stats::model.matrix(~0 + factor(groups))
+    colnames(test_model) <- groups[!duplicated(groups)]
+    
+    test_cont <- limma::makeContrasts(
+        NCDvsALL = NCD - (CCI4 + HCC + NASH) / 3,
+        CCI4vsALL = CCI4 - (NCD + NASH + HCC) / 3,
+        NASHvsALL = NASH - (NCD + CCI4 + HCC) / 3,
+        HCCvsALL = HCC - (NCD + CCI4 + NASH) / 3,
+        levels = test_model
+    )
+    
+    test_fit <- limma::lmFit(cnt_data, test_model)
+    test_fit.c <- limma::contrasts.fit(test_fit, contrasts = test_cont)
+    test_fit.e <- limma::eBayes(test_fit.c)
+    
+    test_res <- limma::decideTests(test_fit.e, p.value = 0.05)
+    
+    test_table1 <- limma::topTable(test_fit.e, coef = 1, n = Inf)  # NCD vs ALL
+    test_table2 <- limma::topTable(test_fit.e, coef = 2, n = Inf)  # CCL4 vs ALL
+    test_table3 <- limma::topTable(test_fit.e, coef = 3, n = Inf)  # NASH vs ALL
+    test_table4 <- limma::topTable(test_fit.e, coef = 4, n = Inf)  # HCC vs ALL
+    
+    res <- list(test_fit, test_fit.c, test_fit.e, test_res,
+                test_table1, test_table2, test_table3, test_table4)
+    
+    names(res) <- c("fit", "fit.c", "fit.e", "res",
+                    "tbl1", "tbl2", "tbl3", "tbl4")
+    
+    return(res)
+}
+
+test4 <- PathDiff(("./test4.xlsx"))
