@@ -98,10 +98,9 @@ PathDiff2 <- function(file_path) {
     colnames(test_model) <- groups[!duplicated(groups)]
     
     test_cont <- limma::makeContrasts(
-        NCDvsALL = NCD - (CCI4 + HCC + NASH) / 3,
-        CCI4vsALL = CCI4 - (NCD + NASH + HCC) / 3,
-        NASHvsALL = NASH - (NCD + CCI4 + HCC) / 3,
-        HCCvsALL = HCC - (NCD + CCI4 + NASH) / 3,
+        CCI4vsALL = CCI4 - (NASH + HCC) / 2,
+        NASHvsALL = NASH - (CCI4 + HCC) / 2,
+        HCCvsALL = HCC - (CCI4 + NASH) / 2,
         levels = test_model
     )
     
@@ -111,18 +110,17 @@ PathDiff2 <- function(file_path) {
     
     test_res <- limma::decideTests(test_fit.e, p.value = 0.05)
     
-    test_table1 <- limma::topTable(test_fit.e, coef = 1, n = Inf)  # NCD vs ALL
-    test_table2 <- limma::topTable(test_fit.e, coef = 2, n = Inf)  # CCL4 vs ALL
-    test_table3 <- limma::topTable(test_fit.e, coef = 3, n = Inf)  # NASH vs ALL
-    test_table4 <- limma::topTable(test_fit.e, coef = 4, n = Inf)  # HCC vs ALL
+    test_table1 <- limma::topTable(test_fit.e, coef = 1, n = Inf)
+    test_table2 <- limma::topTable(test_fit.e, coef = 2, n = Inf)
+    test_table3 <- limma::topTable(test_fit.e, coef = 3, n = Inf)
     
     res <- list(test_fit, test_fit.c, test_fit.e, test_res,
-                test_table1, test_table2, test_table3, test_table4)
+                test_table1, test_table2, test_table3)
     
     names(res) <- c("fit", "fit.c", "fit.e", "res",
-                    "tbl1", "tbl2", "tbl3", "tbl4")
+                    "tbl1", "tbl2", "tbl3")
     
     return(res)
 }
 
-test4 <- PathDiff(("./test4.xlsx"))
+test4 <- PathDiff2(("./test4.xlsx"))
