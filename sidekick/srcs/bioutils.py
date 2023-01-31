@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import gseapy as gp
+from statsmodels.robust import mad
 
 
 def CountExtractor(file_path: str) -> tuple:
@@ -50,7 +51,7 @@ def MADFilter(df: pd.DataFrame) -> pd.DataFrame:
             -> Remove Genes with value of (median - 3 * MAD)
     """
 
-    upper_bound = df.median()
+    upper_bound = df.median(axis=0) + 3*mad()
 
 
 
