@@ -51,14 +51,32 @@ def MADFilter(df: pd.DataFrame) -> pd.DataFrame:
             -> Remove Genes with value of (median - 3 * MAD)
     """
 
+<<<<<<< Updated upstream
     upper_bound = df.median(axis=0) + 3*mad()
+=======
+    upper_bound = df.median(axis=0) + 3*mad(df, axis=0)  # median(axis=0) : median for each column vector
+    lower_bound = df.median(axis=0) - 3*mad(df, axis=0)  # mad(axis=0) : MAD for each column vector
+    
+    # retain genes that satisfies MAD criteria for every sample
+    return df[((df >= lower_bound) & (df < upper_bound)).sum(axis=1) == df.shape[1]]  # sum(axis=1) : sum for each row vector (count if it's True for every sample)
+>>>>>>> Stashed changes
 
 
 
-def CalculateTPM():
+def CalculateTPM(cnt_df: pd.DataFrame, len_df: pd.DataFrame):
     """
         Calculate TPM values from unnormalized count data
     """
+    
+    common_idx = set(cnt_df.index) & set(len_df.index)
+    cnt = cnt_df.loc[list(common_idx), :]
+    length = len_df.loc[list(common_idx), :]
+
+    rpk = cnt.div(length.values, axis=0) * 1e3
+    
+    tpm = rpk.div(rpk.sum().values) * 1e6
+    
+    return tpm
 
 
 
@@ -163,7 +181,3 @@ def Ens2Ent(df: pd.DataFrame) -> pd.DataFrame:
     merged_res.sort_index(axis=1, inplace=True)  # sort column names (sample names) alphabetically
 
     return merged_res
-
-
-
-def Logger()
