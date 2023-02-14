@@ -43,6 +43,7 @@ CountExtractor <- function(data_path) {
             FPKM <- merge(FPKM, fpkm, by = "gene_id")
         }
         
+        # remove gene version and make it as rownames
         LENGTH <- na.omit(LENGTH)
         LENGTH$gene_id <- unlist(lapply(LENGTH$gene_id,
                                         function(x) stringr::str_split(x, '\\.')[[1]][1]),
@@ -67,13 +68,22 @@ CountExtractor <- function(data_path) {
                                use.names = FALSE)
         FPKM <- FPKM %>% tibble::column_to_rownames("gene_id")
         
+        # remove zero-valued rows (should performed after 'cloumn_to_rownames')
+        # count data should not have zero-valued rows
+        COUNT <- COUNT[apply(COUNT, MARGIN = 1, function(x) all(x != 0)), ]
+        
+        # LENGTH, TPM, FPKM data should have same rows as COUNT has
+        LENGTH <- LENGTH[rownames(LENGTH) %in% rownames(COUNT), ]
+        TPM <- TPM[rownames(TPM) %in% rownames(COUNT), ]
+        FPKM <- FPKM[rownames(FPKM) %in% rownames(COUNT), ]
+        
         res <- list(LENGTH, COUNT, TPM, FPKM)
         names(res) <- c('LENGTH', 'COUNT', 'TPM', 'FPKM')
         
         return(res)
         
     } else {
-        print("required library is not loaded!\n")
+        stop("tidyverse library is not loaded!\n")
     }
 }
 
@@ -82,12 +92,27 @@ CountExtractor <- function(data_path) {
 
 # query different gene ID
 BuildGeneNameDB <- function(gene_list) {
-    if (required("biomaRt")) {
+    if (require("biomaRt")) {
         
+        mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+                                 dataset = "mmusculus_gene_ensembl")
         
+        # attributes : output features
+        # filters : input features
+        # values : input gene list
+        # bm : dataframe returned by getBM function
+        bm <- biomaRt::getBM(attributes = c("ensembl_gene_id", "entrezgene_id", "external_gene_name"),
+                             filters = "ensembl_gene_id",
+                             values = gene_list,
+                             mart = mart)
+        
+        # Ensembl gene ID is referred as 'gene_id' in RSEM result
+        colnames(bm) <- c("gene_id", "entrez", "symbol")
+        
+        return(bm)
         
     } else {
-        print("required library is not loaded!\n")
+        stop("biomaRt library is not loaded!\n")
     }
 }
 
@@ -96,3 +121,61 @@ BuildGeneNameDB <- function(gene_list) {
 
 # replace gene ID with different IDs seamlessly
 # (i.e. ENS <--> Entrez, ENS <--> Gene_Symbol)
+ReplaceRowNames <- function(target_df, name_db, option) {
+    # substitute_df should have columns for bot originanl row names and new row names
+    
+    if (require("tidyverse")) {
+        
+        if (option == 'ens2ent') {  # ensembl gene ID to entrez gene ID
+            substitute_df <- name_db[, c(1, 2)]
+            new_rowname <- "entrez"
+        } else if (option == 'ens2sym') {  # ensembl gene ID to gene symbol
+            substitute_df <- name_db[, c(1, 3)]
+            new_rowname <- "symbol"
+        } else {
+            stop("Choose 'ens2ent' or 'ens2sym' as an option")
+        }
+        
+        target_df <- target_df %>% tibble::rownames_to_column(var = "gene_id")
+        target_df <- merge(target_df, substitute_df, by = "gene_id")
+        
+        # remove identically duplicated rows
+        target_df <- target_df %>% dplyr::distinct()
+        
+        # remove unmapped rows (empty entrez/symbol)
+        target_df <- target_df[!(trimws(target_df[, new_rowname]) == ''), ]
+        
+        # sum multimapped rows (different Ensembl ID, same entrez/symbol)
+        target_df <- target_df %>% 
+            dplyr::group_by(eval(new_rowname)) %>%
+            dplyr::mutate(dplyr::across(!gene_id & !eval(new_rowname), sum)) %>%
+            dplyr::distinct()
+        
+        target_df <- target_df %>% tibble::column_to_rownames(var = new_rowname)
+        target_df <- target_df[, !('gene_id' == colnames(target_df))]
+        
+        return(target_df)
+        
+    } else {
+        stop("tidyverse library is not loaded!")
+    }
+}
+
+
+
+
+
+###
+needed_packages <- c('a', 'b', 'c')
+
+if (all(sapply(needed_packages, require, character.only = TRUE))) {
+    ...
+} else {
+    ...
+}
+###
+
+
+
+
+mutate_each(funs(mean), -(1:5)) %>% distinct
