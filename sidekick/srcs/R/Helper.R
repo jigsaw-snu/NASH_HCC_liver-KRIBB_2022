@@ -1,11 +1,18 @@
 # make various count data
-CountExtractor <- function(data_path) {
+CountExtractor <- function(data_path, save_path) {
+    # if saved file exists, just load it
+    if ('CountData.Rds' %in% list.files(save_path)) {
+        print("loading from Rds file...\n")
+        
+        return(readRDS(file.path(save_path, 'CountData.Rds')))
+    }
+    
     if (require("tidyverse")) {
     
         files <- list.files(data_path)
         
         # make templates using a single data
-        template <- read.table(paste0(data_path, files[1]), header = TRUE)
+        template <- read.table(file.path(data_path, files[1]), header = TRUE)
         sample_name <- stringr::str_split(files[1], '\\.')[[1]][1]
         
         LENGTH <- template[, c(1, 3)]  # gene length
@@ -22,7 +29,7 @@ CountExtractor <- function(data_path) {
         
         # add data to template
         for (i in 2:length(files)) {
-            data <- read.table(paste0(data_path, files[i]), header = TRUE)
+            data <- read.table(file.path(data_path, files[i]), header = TRUE)
             sample_name <- stringr::str_split(files[i], '\\.')[[1]][1]
             
             length <- data[, c(1, 3)]
@@ -68,7 +75,7 @@ CountExtractor <- function(data_path) {
                                use.names = FALSE)
         FPKM <- FPKM %>% tibble::column_to_rownames("gene_id")
         
-        # remove zero-valued rows (should performed after 'cloumn_to_rownames')
+        # remove zero-valued rows (should performed after 'column_to_rownames')
         # count data should not have zero-valued rows
         COUNT <- COUNT[apply(COUNT, MARGIN = 1, function(x) all(x != 0)), ]
         
@@ -79,6 +86,9 @@ CountExtractor <- function(data_path) {
         
         res <- list(LENGTH, COUNT, TPM, FPKM)
         names(res) <- c('LENGTH', 'COUNT', 'TPM', 'FPKM')
+        
+        # save for next time
+        saveRDS(res, file = file.path(save_path, 'CountData.Rds'))
         
         return(res)
         
@@ -91,7 +101,14 @@ CountExtractor <- function(data_path) {
 
 
 # query different gene ID
-BuildGeneNameDB <- function(gene_list) {
+BuildGeneNameDB <- function(gene_list, save_path) {
+    # if saved file exists, jsut load it
+    if ('GeneNameDB.Rds' %in% list.files(save_path)) {
+        print("loading from Rds file...\n")
+        
+        return(readRDS(file.path(save_path, 'GeneNameDB.Rds')))
+    }
+    
     if (require("biomaRt")) {
         
         mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
@@ -108,6 +125,9 @@ BuildGeneNameDB <- function(gene_list) {
         
         # Ensembl gene ID is referred as 'gene_id' in RSEM result
         colnames(bm) <- c("gene_id", "entrez", "symbol")
+        
+        # save for next time
+        saveRDS(bm, file = file.path(save_path, 'GeneNameDB.Rds'))
         
         return(bm)
         
@@ -138,21 +158,21 @@ ReplaceRowNames <- function(target_df, name_db, option) {
         
         target_df <- target_df %>% tibble::rownames_to_column(var = "gene_id")
         target_df <- merge(target_df, substitute_df, by = "gene_id")
+        target_df <- target_df[, !('gene_id' == colnames(target_df))]  # gene_id is no more needed
         
         # remove identically duplicated rows
         target_df <- target_df %>% dplyr::distinct()
         
         # remove unmapped rows (empty entrez/symbol)
-        target_df <- target_df[!(trimws(target_df[, new_rowname]) == ''), ]
-        
+        target_df <- subset(target_df, !(is.na(new_rowname) | trimws(new_rowname) == ''))
+        test1 <<- target_df
         # sum multimapped rows (different Ensembl ID, same entrez/symbol)
         target_df <- target_df %>% 
-            dplyr::group_by(eval(new_rowname)) %>%
-            dplyr::mutate(dplyr::across(!gene_id & !eval(new_rowname), sum)) %>%
+            dplyr::group_by(!!rlang::sym(new_rowname)) %>%
+            dplyr::mutate(dplyr::across(dplyr::everything(), sum)) %>%
             dplyr::distinct()
-        
+        test2 <<- target_df
         target_df <- target_df %>% tibble::column_to_rownames(var = new_rowname)
-        target_df <- target_df[, !('gene_id' == colnames(target_df))]
         
         return(target_df)
         
