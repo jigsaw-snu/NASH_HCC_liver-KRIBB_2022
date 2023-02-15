@@ -10,3 +10,5 @@ GENE_NAME_DB <- BuildGeneNameDB(rownames(DATA$LENGTH), "../../resources")
 
 COUNT_sym <- ReplaceRowNames(DATA$COUNT, GENE_NAME_DB, "ens2sym")
 COUNT_ent <- ReplaceRowNames(DATA$COUNT, GENE_NAME_DB, "ens2ent")
+
+

@@ -162,15 +162,16 @@ ReplaceRowNames <- function(target_df, name_db, option) {
         
         # remove identically duplicated rows
         target_df <- target_df %>% dplyr::distinct()
-        
-        # remove unmapped rows (empty entrez/symbol)
-        target_df <- subset(target_df, !(is.na(new_rowname) | trimws(new_rowname) == ''))
-        test1 <<- target_df
+
         # sum multimapped rows (different Ensembl ID, same entrez/symbol)
         target_df <- target_df %>% 
             dplyr::group_by(!!rlang::sym(new_rowname)) %>%
             dplyr::mutate(dplyr::across(dplyr::everything(), sum)) %>%
             dplyr::distinct()
+        
+        test1 <<- target_df
+        # remove unmapped rows (empty entrez/symbol) and unexpected empty/NA cells
+        target_df <- subset(target_df, !is.na(new_rowname) & trimws(new_rowname) != '')
         test2 <<- target_df
         target_df <- target_df %>% tibble::column_to_rownames(var = new_rowname)
         
