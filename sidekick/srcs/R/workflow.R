@@ -1,6 +1,6 @@
 # workflow.R contains plain analysis codes without functional encapsulations
 
-RSRC <- "../../resources/"
+RSRC <- "../../resources"
 RAW_DATA <- file.path(RSRC, "rsem_count")
 RDATA <- file.path(RSRC, "rdata")
 FIGURES <- file.path(RSRC, "figures")
@@ -90,7 +90,7 @@ boxplot(count_data)  # show boxplot for read counts
 treatment <- grepl("CCI4", colnames(raw_count)) | grepl("HCC", colnames(raw_count))  # logical vector for ccl4
 dose <- grepl("3x", colnames(raw_count))  # logical vector for 3x dose
 diet <- grepl("NASH", colnames(raw_count)) | grepl("HCC", colnames(raw_count))  # logical vector for NASH diet
-tumor <- grepl("T", colnames(raw_count))  # logical vector for tumor existence
+tumor <- !grepl("AT", colnames(raw_count)) & grepl("T", colnames(raw_count))  # logical vector for tumor existence
 
 map_treatment <- c("TRUE" = "ccl4", "FALSE" = "saline")
 map_dose <- c("TRUE" = "3x", "FALSE" = "1x")
@@ -141,12 +141,21 @@ dds <- DESeq2::DESeq(dds)
 
 
 # 3. EDA
+library(ComplexHeatmap)
+library(RColorBrewer)
+
 rlog <- DESeq2::rlog(dds, blind = TRUE)
-rlog_backup <- rlog
 
-rlog <- SummarizedExperiment::assay(rlog)
+# quick PCA using DESeq2::plotPCA
+DESeq2::plotPCA(rlog, intgroup = "Stage")  # samples are clustered well by its stage
+DESeq2::plotPCA(rlog, intgroup = "Dose")  # variation within 3x samples are much higher than 1x samples
+DESeq2::plotPCA(rlog, intgroup = "Tumor")  # there seems no apparent difference between tumor and adjacent tumor in HCC
+DESeq2::plotPCA(rlog, intgroup = c("Tumor", "Dose"))
 
-pca <- stats::prcomp(t(rlog), center = TRUE, scale. = TRUE)
+# PCA with more detailed information
+rlog_assayed <- SummarizedExperiment::assay(rlog)
+
+pca <- stats::prcomp(t(rlog_assayed), center = TRUE, scale. = TRUE)
 percent_var <- round(pca$sdev^2 / sum(pca$sdev^2) * 100, digits = 2)
 pca_df <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2], PC3 = pca$x[, 3])
 pca_df <- merge(pca_df, meta_data, by = "row.names") %>%
@@ -158,7 +167,54 @@ ggplot2::ggplot(pca_df, aes(x = PC1, y = PC2)) +
     ggplot2::ylab(paste0("PC2 : ", percent_var[2], '%')) +
     ggplot2::theme_bw()
     #ggplot2::coord_fixed(ratio = sqrt(percent_var[2] / percent_var[1]))
-    
-    ggrepel::geom_text_repel(aes(label = rownames(pca_df)))
 
-DESeq2::plotPCA(rlog_backup, intgroup = "Stage")
+
+# (sample) x (sample) heatmap
+corr <- stats::cor(rlog_assayed)
+
+top_annotation <- ComplexHeatmap::HeatmapAnnotation(tumor = meta_data$Tumor,
+                                                    dose = meta_data$Dose,
+                                                    stage = meta_data$Stage,
+                                                    col = list(stage = c("Normal" = "#33FFB8",
+                                                                         "NASH" = "#FFC300",
+                                                                         "Fibrosis" = "#5E33FF",
+                                                                         "HCC" = "#900C3F"),
+                                                               dose = c("1x" = "#CADE6E",
+                                                                        "3x" = "#EFA751"),
+                                                               tumor = c("tumor" = "#FF5733",
+                                                                         "non-tumor" = "#51D5EF")))
+
+left_annotation <- ComplexHeatmap::rowAnnotation(tumor = meta_data$Tumor,
+                                                 dose = meta_data$Dose,
+                                                 stage = meta_data$Stage,
+                                                 col = list(stage = c("Normal" = "#33FFB8",
+                                                                      "NASH" = "#FFC300",
+                                                                      "Fibrosis" = "#5E33FF",
+                                                                      "HCC" = "#900C3F"),
+                                                            dose = c("1x" = "#CADE6E",
+                                                                     "3x" = "#EFA751"),
+                                                            tumor = c("tumor" = "#FF5733",
+                                                                      "non-tumor" = "#51D5EF")))
+
+ComplexHeatmap::pheatmap(mat = corr,
+                         top_annotation = top_annotation,
+                         left_annotation = left_annotation,
+                         cluster_rows = TRUE,
+                         cluster_cols = TRUE,
+                         color = rev(RColorBrewer::brewer.pal(11, "RdBu")))
+
+
+# biological QC? using ssGSEA?
+
+
+
+# re-analysis without 3x samples
+drops <- rownames(meta_data)[grepl("3x", rownames(meta_data)) | grepl("AT", rownames(meta_data))]
+
+new_count <- 
+
+
+
+
+# 4. Differential Expression Analysis
+
