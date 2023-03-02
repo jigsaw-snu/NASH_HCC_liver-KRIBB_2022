@@ -204,17 +204,28 @@ ComplexHeatmap::pheatmap(mat = corr,
                          color = rev(RColorBrewer::brewer.pal(11, "RdBu")))
 
 
-# biological QC? using ssGSEA?
+# checking biological condition between groups
+# GSEA
+
+
+# ssGSEA
 
 
 
 # re-analysis without 3x samples
 drops <- rownames(meta_data)[grepl("3x", rownames(meta_data)) | grepl("AT", rownames(meta_data))]
 
-new_count <- 
+
 
 
 
 
 # 4. Differential Expression Analysis
 
+
+    
+    
+    
+# Batch Correction test
+library(sva)
+library(RUVSeq)
