@@ -72,11 +72,34 @@ gene_length[] <- lapply(gene_length, function(x) round(x))
 tpm[] <- lapply(tpm, function(x) round(x))
 fpkm[] <- lapply(fpkm, function(x) round(x))
 
-# remove low count 'genes' (count_value <= 15)
-count_data <- raw_count[apply(raw_count, MARGIN = 1, function(x) all(x > 10)), ]
+
 
 # EDA for read counts
-boxplot(count_data)  # show boxplot for read counts
+library(yarn)
+
+# remove zero counts for log transformation
+count_data <- raw_count[apply(raw_count, MARGIN = 1, function(x) all(x > 0)), ]
+
+# show boxplot for raw read counts
+ggplot2::ggplot(data = tidyr::gather(data = count_data, 
+                                     key = Sample, 
+                                     value = Count),
+                aes(x = Sample, y = Count)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+# show boxplot for log(raw_read_counts)
+ggplot2::ggplot(data = tidyr::gather(data = log(count_data), 
+                                     key = Sample, 
+                                     value = Count),
+                aes(x = Sample, y = Count)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+# remove global low count 'genes' (count_value <= 15)
+count_data_gl <- count_data[apply(count_data, MARGIN = 1, function(x) all(x > 10)), ]
 
 # find and remove outlier 'genes' using MAD criteria
 
