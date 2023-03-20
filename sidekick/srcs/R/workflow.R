@@ -1,4 +1,6 @@
 # workflow.R contains plain analysis codes without functional encapsulations
+source("miscellanea.R")
+
 
 RSRC <- "../../resources"
 RAW_DATA <- file.path(RSRC, "rsem_count")
@@ -76,6 +78,8 @@ fpkm[] <- lapply(fpkm, function(x) round(x))
 
 # EDA for read counts
 library(yarn)
+library(EDASeq)
+library(RUVSeq)
 
 # remove zero counts for log transformation
 count_data <- raw_count[apply(raw_count, MARGIN = 1, function(x) all(x > 0)), ]
