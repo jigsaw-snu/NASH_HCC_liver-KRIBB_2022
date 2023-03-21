@@ -76,34 +76,19 @@ fpkm[] <- lapply(fpkm, function(x) round(x))
 
 
 
-# EDA for read counts
+# EDA
 library(yarn)
 library(EDASeq)
 library(RUVSeq)
 
-# remove zero counts for log transformation
+# remove global low count 'genes' (count_value <= cutoff)
 count_data <- raw_count[apply(raw_count, MARGIN = 1, function(x) all(x > 0)), ]
+count_data <- count_data[rowSums(raw_count) > 3, ]
 
-# show boxplot for raw read counts
-ggplot2::ggplot(data = tidyr::gather(data = count_data, 
-                                     key = Sample, 
-                                     value = Count),
-                aes(x = Sample, y = Count)) + 
-    ggplot2::geom_boxplot() +
-    ggplot2::theme_bw() +
-    ggplot2::theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-
-# show boxplot for log(raw_read_counts)
-ggplot2::ggplot(data = tidyr::gather(data = log(count_data), 
-                                     key = Sample, 
-                                     value = Count),
-                aes(x = Sample, y = Count)) + 
-    ggplot2::geom_boxplot() +
-    ggplot2::theme_bw() +
-    ggplot2::theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-
-# remove global low count 'genes' (count_value <= 15)
-count_data_gl <- count_data[apply(count_data, MARGIN = 1, function(x) all(x > 10)), ]
+# show boxplots for raw read counts
+showBoxplot(count_data)
+showBoxplot(log(count_data))  # no pseudocount needed, since we removed all zero counts
+showRLEplot(count_data)  # RLE plot of unnormalized counts
 
 # find and remove outlier 'genes' using MAD criteria
 

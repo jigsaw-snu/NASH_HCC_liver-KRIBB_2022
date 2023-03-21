@@ -1,6 +1,25 @@
 library(ggplot2)
 
 
+# Box plot
+showBoxplot <- function(x) {
+    color <- c(rep("darkgreen", 6),
+               rep("red", 16),
+               rep("yellow", 3),
+               rep("blue", 3))
+    
+    ggplot2::ggplot(data = tidyr::gather(data = x,
+                                         key = Sample,
+                                         value = Count),
+                    aes(x = Sample, y = Count)) +
+        ggplot2::geom_boxplot(fill = color, alpha = rep(0.3, 28)) + 
+        ggplot2::theme_bw() + 
+        ggplot2::theme(axis.text.x = element_text(angle = 45, 
+                                                  vjust = 1, 
+                                                  hjust = 1))
+}
+
+
 # RLE plot
 # 0. log transform the original matrix
 # 1. For each gene, calculate its median expression across the samples
