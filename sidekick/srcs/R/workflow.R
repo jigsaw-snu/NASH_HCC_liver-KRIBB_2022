@@ -90,6 +90,8 @@ showBoxplot(count_data)
 showBoxplot(log(count_data))  # no pseudocount needed, since we removed all zero counts
 showRLEplot(count_data)  # RLE plot of unnormalized counts
 
+
+
 # find and remove outlier 'genes' using MAD criteria
 
 

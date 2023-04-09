@@ -49,3 +49,6 @@ showRLEplot <- function(x) {  # x : gene by sample matrix
                                                   hjust = 1)) +
         xlab("Samples") + ylab("Relative Log Expression")
 }
+
+
+# TPM calculation
