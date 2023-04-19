@@ -154,6 +154,7 @@ library(org.Mm.eg.db)
 library(clusterProfiler)
 library(fgsea)
 library(msigdbr)
+library(writexl)
 
 hallmarks_gmt <- msigdbr::msigdbr(species = "Mus musculus", category = "H")
 hallmarks <- split(x = hallmarks_gmt$gene_symbol, 
@@ -206,6 +207,7 @@ ComplexHeatmap::Heatmap(mat = corr_sub,
 
 
 ################################################################################
+# let's consider only 1x samples
 ################################################################################
 
 keep <- meta_data %>% dplyr::filter(Dose == "1x") %>% rownames()
@@ -227,6 +229,8 @@ res <- merge(res %>% tibble::rownames_to_column("ensembl_gene_id"), bm_res)
 resLFC_HCC_T_vs_Normal <- res %>%
     dplyr::filter(abs(log2FoldChange) > 1 & padj < 0.05)
 
+writexl::write_xlsx(x = resLFC_HCC_T_vs_Normal,
+                    path = file.path(RDATA, "resLFC_HCC_T_vs_Normal.xlsx"))
 
 EnhancedVolcano::EnhancedVolcano(toptable = res,
                                  lab = res$external_gene_name,
@@ -276,6 +280,9 @@ up_kegg_HCC_T_vs_Normal <- clusterProfiler::enrichKEGG(gene = up_reg_HCC_T_vs_No
 up_kegg_HCC_T_vs_Normal_sig <- up_kegg_HCC_T_vs_Normal@result %>%
     dplyr::filter(qvalue < 0.05)
 
+writexl::write_xlsx(x = up_kegg_HCC_T_vs_Normal_sig,
+                    path = file.path(RDATA, "up_kegg_HCC_T_vs_Normal_sig.xlsx"))
+
 
 ggplot2::ggplot(data = up_kegg_HCC_T_vs_Normal_sig, 
                 aes(x = Count, y = Description))+
@@ -297,6 +304,9 @@ up_go_HCC_T_vs_Normal <- clusterProfiler::enrichGO(gene = up_reg_HCC_T_vs_Normal
 up_go_HCC_T_vs_Normal_sig <- up_go_HCC_T_vs_Normal@result %>%
     dplyr::filter(qvalue < 0.05)
 
+writexl::write_xlsx(x = up_go_HCC_T_vs_Normal_sig,
+                    path = file.path(RDATA, "up_go_HCC_T_vs_Normal_sig.xlsx"))
+
 
 ggplot2::ggplot(data = up_go_HCC_T_vs_Normal_sig %>% filter(qvalue < 3*10e-9), 
                 aes(x = Count, y = Description))+
@@ -305,6 +315,33 @@ ggplot2::ggplot(data = up_go_HCC_T_vs_Normal_sig %>% filter(qvalue < 3*10e-9),
                       aes(fill = -log(qvalue))) +
     ggplot2::scale_fill_gradient(low = "#1E88E5", high = "#E53935")
 
+
+down_kegg_HCC_T_vs_Normal <- clusterProfiler::enrichKEGG(gene = down_reg_HCC_T_vs_Normal$entrezgene_id,
+                                                         organism = "mmu",
+                                                         keyType = "kegg",
+                                                         pvalueCutoff = 0.05,
+                                                         qvalueCutoff = 0.05)
+
+down_kegg_HCC_T_vs_Normal_sig <- down_kegg_HCC_T_vs_Normal@result %>%
+    dplyr::filter(qvalue < 0.05)
+
+writexl::write_xlsx(x = down_kegg_HCC_T_vs_Normal_sig,
+                    path = file.path(RDATA, "down_kegg_HCC_T_vs_Normal_sig.xlsx"))
+
+
+down_go_HCC_T_vs_Normal <- clusterProfiler::enrichGO(gene = down_reg_HCC_T_vs_Normal$entrezgene_id,
+                                                     OrgDb = org.Mm.eg.db,
+                                                     keyType = "ENTREZID",
+                                                     ont = "BP",
+                                                     pvalueCutoff = 0.05,
+                                                     qvalueCutoff = 0.05,
+                                                     readable = TRUE)
+
+down_go_HCC_T_vs_Normal_sig <- down_go_HCC_T_vs_Normal@result %>%
+    dplyr::filter(qvalue < 0.05)
+
+writexl::write_xlsx(x = down_go_HCC_T_vs_Normal_sig,
+                    path = file.path(RDATA, "down_go_HCC_T_vs_Normal_sig.xlsx"))
 
 
 rank_HCC_T_vs_Normal <- resLFC_HCC_T_vs_Normal %>%
@@ -320,6 +357,7 @@ gsea_HCC_T_vs_Normal <- fgsea::fgsea(pathways = hallmarks,
 fgsea::plotEnrichment(pathway = hallmarks[["HALLMARK_G2M_CHECKPOINT"]],
                       stats = rank_HCC_T_vs_Normal) + 
     labs(title = "HALLMARK_G2M_CHECKPOINT")
+
 
 
 
@@ -357,6 +395,9 @@ EnhancedVolcano::EnhancedVolcano(toptable = res,
 
 resLFC_HCC_T_vs_Normal_3x <- res %>%
     dplyr::filter(abs(log2FoldChange) > 1 & padj < 0.05)
+
+writexl::write_xlsx(x = resLFC_HCC_T_vs_Normal_3x,
+                    path = file.path(RDATA, "resLFC_HCC_T_vs_Normal_3x.xlsx"))
 
 resLFC_HCC_T_vs_Normal2_3x <- resLFC_HCC_T_vs_Normal_3x %>%
     dplyr::filter(abs(log2FoldChange) > 2)
